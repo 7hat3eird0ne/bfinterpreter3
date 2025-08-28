@@ -37,7 +37,9 @@ private:
 
 class Interpreter {
 public:
-  Interpreter(const std::string& code, std::ostream& out, std::istream& in);
+  static constexpr unsigned char noStopMark{0xFF};
+
+  Interpreter(const std::string& code, std::ostream& out, std::istream& in, unsigned char stopmark = noStopMark);
 
   std::istream& getInput();
   std::ostream& getOutput();
@@ -45,17 +47,18 @@ public:
   void writeInput(const std::string& input);
 
   void reset();
-  bool unstop(bool stopOnEOF, std::set<size_t> stoppoints);
-  bool run(bool stopOnEOF, std::set<size_t> stoppoints = {});
+  bool unstop(bool stopOnEOF, std::set<size_t> additionalStoppoints = {});
+  bool run(bool stopOnEOF, std::set<size_t> additionalStoppoints = {});
 
 private:
   void raiseError(size_t line, size_t collumn, const std::string& message);
 
-  void bindProgram(const std::string& code);
+  void bindProgram(const std::string& code, unsigned char stopmark);
 
   std::string program{""};
   size_t counter{0};
   std::map<size_t, size_t> bracketMap{};
+  std::set<size_t> builtinStoppoints{};
 
   Tape tape{};
   Pointer pointer{};

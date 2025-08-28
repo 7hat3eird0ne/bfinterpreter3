@@ -55,10 +55,10 @@ Tape::cell_type Tape::get(const Pointer& pointer) const {
 
 
 void Interpreter::raiseError(size_t line, size_t column, const std::string& message) {
-  throw std::runtime_error{(std::to_string(line) + ":"s + std::to_string(column) + message).c_str()};
+  throw std::runtime_error{(std::to_string(line) + ":"s + std::to_string(column) + " "s + message).c_str()};
 }
 
-void Interpreter::bindProgram(const std::string& code) {
+void Interpreter::bindProgram(const std::string& code, unsigned char stopmark) {
   std::stack<size_t> bracketStack{};
   size_t pos{0};
   size_t column{1};
@@ -76,6 +76,9 @@ void Interpreter::bindProgram(const std::string& code) {
       bracketMap[bracketStack.top()] = pos;
       bracketStack.pop();
       break;
+    }
+    if (stopmark != noStopMark && character == stopmark) {
+      builtinStoppoints.insert(pos);
     }
     switch (character) {
     case '+':
@@ -101,10 +104,10 @@ void Interpreter::bindProgram(const std::string& code) {
   }
 }
 
-Interpreter::Interpreter(const std::string& code, std::ostream& out, std::istream& in):
+Interpreter::Interpreter(const std::string& code, std::ostream& out, std::istream& in, unsigned char stopmark):
   input{in},
   output{out} {
-  bindProgram(code);
+  bindProgram(code, stopmark);
 }
 
 std::istream& Interpreter::getInput() {
@@ -127,9 +130,9 @@ void Interpreter::reset() {
   pointer = {};
 }
 
-bool Interpreter::unstop(bool stopOnEOF, std::set<size_t> stoppoints = {}) {
+bool Interpreter::unstop(bool stopOnEOF, std::set<size_t> additionalStoppoints) {
   while (counter < program.size()) {
-    if (stoppoints.count(counter)) {
+    if (builtinStoppoints.count(counter) || additionalStoppoints.count(counter)) {
       return true;
     }
     char command{program[counter]};
@@ -171,7 +174,7 @@ bool Interpreter::unstop(bool stopOnEOF, std::set<size_t> stoppoints = {}) {
   return false;
 }
 
-bool Interpreter::run(bool stopOnEOF, std::set<size_t> stoppoints) {
+bool Interpreter::run(bool stopOnEOF, std::set<size_t> additionalStoppoints) {
   reset();
-  return unstop(stopOnEOF, stoppoints);
+  return unstop(stopOnEOF, additionalStoppoints);
 }
